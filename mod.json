@@ -1,0 +1,14 @@
+{
+    "id": "HighRoller",
+    "name": "High Roller",
+    "display_name": "High Roller",
+    "author": ["Fooping"],
+    "description": "High Stakes, Higher Rewards",
+    "prefix": "hr",
+    "main_file": "main.lua",
+    "priority": "0",
+    "badge_colour": "F08C43",
+    "badge_text_colour": "ffffff",
+    "version": "0.1.8",
+    "dependencies": []
+}
