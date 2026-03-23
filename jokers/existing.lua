@@ -94,7 +94,6 @@ SMODS.Joker {
 }
 
 -- Rusty Blade Joker
--- FIX: atlas was "jokers", changed to "hr_jokers"
 SMODS.Joker {
     key              = "rustyblade",
     atlas            = "hr_jokers",
@@ -282,7 +281,6 @@ SMODS.Joker {
 }
 
 -- Roulette Joker
--- FIX: atlas was "jokers", changed to "hr_jokers"
 SMODS.Joker {
     key              = "roulette",
     atlas            = "hr_jokers",

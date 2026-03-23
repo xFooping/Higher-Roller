@@ -327,3 +327,139 @@ SMODS.Joker {
         end
     end
 }
+
+--Magnetism
+SMODS.Joker {
+    key              = "magnetism",
+    atlas            = "hr_jokers",
+    pos              = { x = 5, y = 1 },
+    rarity           = 3,
+    cost             = 10,
+    blueprint_compat = false,
+    discovered       = true,
+
+    loc_txt = {
+        name = "Magnetism",
+        text = {
+            "Playing a {C:attention}single card{}",
+            "pulls all cards of the same",
+            "{C:attention}rank{} into play",
+            "{C:inactive}(Up to 5 total)"
+        }
+    },
+
+    calculate = function(self, card, context)
+        if context.before and #G.play.cards == 1 then
+            local played = G.play.cards[1]
+            local rank   = played:get_id()
+            local to_pull = {}
+            local slots  = 4 -- already have 1, need up to 4 more
+
+            -- Hand first
+            for _, c in ipairs(G.hand.cards) do
+                if #to_pull >= slots then break end
+                if c:get_id() == rank then
+                    table.insert(to_pull, c)
+                end
+            end
+
+            -- Deck second
+            if #to_pull < slots then
+                for _, c in ipairs(G.deck.cards) do
+                    if #to_pull >= slots then break end
+                    if c:get_id() == rank then
+                        table.insert(to_pull, c)
+                    end
+                end
+            end
+
+            if #to_pull > 0 then
+                for _, c in ipairs(to_pull) do
+                    local source = c.area
+                    if source then source:remove_card(c) end
+                    c.facing = 'face'
+                    c.flipped = nil
+                    G.play:emplace(c)
+                    c:juice_up(0.2, 0.3)
+                end
+                return {
+                    message = "Attracted!",
+                    colour  = G.C.BLUE
+                }
+            end
+        end
+    end
+}
+
+-- Karma
+SMODS.Joker {
+    key              = "karma",
+    atlas            = "hr_jokers",
+    pos              = { x = 6, y = 1 },
+    rarity           = 2,
+    cost             = 4,
+    blueprint_compat = false,
+    discovered       = true,
+
+    config = { extra = { percent = 50, last_discards_left = 99 } },
+
+    loc_txt = {
+        name = "Karma",
+        text = {
+            "{C:green}+1%{} per hand played,",
+            "{C:red}-1%{} per discard",
+            "Every {C:attention}5%{} from {C:attention}50%{}",
+            "earn or lose {C:gold}$1{} at end of round",
+            "{C:inactive}(Currently #1#% | #2#)"
+        }
+    },
+
+    loc_vars = function(self, info_queue, card)
+        local pct     = card.ability.extra.percent
+        local raw     = math.floor((pct - 50) / 5)
+        local dollars = math.max(-10, math.min(10, raw))
+        local display = dollars == 0 and "$0"
+            or (dollars > 0 and ("+$" .. dollars) or ("-$" .. math.abs(dollars)))
+        return { vars = { pct, display } }
+    end,
+
+    calculate = function(self, card, context)
+
+        if context.discard then
+            local dleft = G.GAME.current_round.discards_left or 0
+            if dleft < card.ability.extra.last_discards_left then
+                card.ability.extra.last_discards_left = dleft
+                card.ability.extra.percent = math.max(0, card.ability.extra.percent - 1)
+                return {
+                    message = "-1%",
+                    colour  = G.C.RED
+                }
+            end
+        end
+
+        if context.joker_main then
+            card.ability.extra.percent = math.min(100, card.ability.extra.percent + 1)
+            return {
+                message = "+1%",
+                colour  = G.C.GREEN
+            }
+        end
+
+        if context.end_of_round and context.main_eval then
+            card.ability.extra.last_discards_left = 99
+
+            local pct     = card.ability.extra.percent
+            local raw     = math.floor((pct - 50) / 5)
+            local dollars = math.max(-10, math.min(10, raw))
+
+            if dollars ~= 0 then
+                return {
+                    dollars = dollars,
+                    message = dollars > 0 and ("+$" .. dollars) or ("-$" .. math.abs(dollars)),
+                    colour  = dollars > 0 and G.C.GOLD or G.C.RED
+                }
+            end
+        end
+
+    end
+}
