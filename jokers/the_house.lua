@@ -496,7 +496,7 @@ SMODS.Joker {
     end,
 
     calculate = function(self, card, context)
-        if context.joker_main then
+        if context.joker_main and not context.blueprint then
             local current  = card.ability.extra.xmult
             local next_val = current - card.ability.extra.decay
 
@@ -506,17 +506,17 @@ SMODS.Joker {
                 card.ability.extra.xmult = card.ability.extra.base
                 card:juice_up(0.8, 0.8)
                 return {
-                    x_mult  = current,
-                    message = "REBORN!",
-                    colour  = G.C.GOLD
+                    Xmult_mod = current,
+                    message   = "REBORN!",
+                    colour    = G.C.GOLD
                 }
             end
 
             card.ability.extra.xmult = next_val
             return {
-                x_mult  = current,
-                message = "X" .. string.format("%.1f", current),
-                colour  = G.C.RED
+                Xmult_mod = current,
+                message   = "X" .. string.format("%.1f", current),
+                colour    = G.C.RED
             }
         end
     end

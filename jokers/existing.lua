@@ -1,20 +1,40 @@
--- Fooping Joker
+-- Function for counting characters for the Bookwork Joker
+local function count_joker_chars(joker_card)
+    local key = joker_card.config.center.key
+    local desc = G.localization.descriptions.Joker[key]
+    if not desc or not desc.text then return 0 end
+
+    local count = 0
+    for _, line in ipairs(desc.text) do
+        local stripped = line:gsub("{[^}]*}", "")  -- strip {C:gold} style tags
+        stripped = stripped:gsub("#%d+#", "X")      -- replace #1# #2# etc with single char
+        for _ in stripped:gmatch("%S") do           -- count non-space characters
+            count = count + 1
+        end
+    end
+    return count
+end
+
+
+-- Poker Chip
 SMODS.Joker {
-    key              = "Fooping",
+    key              = "pokerchip",
     atlas            = "hr_jokers",
     pos              = { x = 0, y = 0 },
     rarity           = 1,
-    blueprint_compat = false,
-    cost             = 2,
+    cost             = 4,
+    blueprint_compat = true,
     discovered       = true,
 
-    config = { extra = { dollars = 3 } },
+    config = { extra = { dollars = 2 } },
 
     loc_txt = {
-        name = "Fooping",
+        name = "Poker Chip",
         text = {
             "Earn {C:gold}$#1#{} at end of round",
-            "Better than Newdies"
+            "per empty {C:attention}Joker{} slot",
+            "{C:inactive}why would you think",
+            "{C:inactive}this would be a chip joker?"
         }
     },
 
@@ -24,10 +44,19 @@ SMODS.Joker {
 
     calculate = function(self, card, context)
         if context.end_of_round and context.main_eval then
-            return { dollars = card.ability.extra.dollars }
+            local empty_slots = G.jokers.config.card_limit - #G.jokers.cards
+            if empty_slots > 0 then
+                return {
+                    dollars = card.ability.extra.dollars * empty_slots,
+                    message = "+$" .. (card.ability.extra.dollars * empty_slots),
+                    colour  = G.C.GOLD
+                }
+            end
         end
     end
 }
+
+
 
 -- Newdies Joker
 SMODS.Joker {
@@ -60,34 +89,52 @@ SMODS.Joker {
     end
 }
 
--- The Wizard Joker
+--Bookworm Joker
 SMODS.Joker {
-    key              = "thewizard",
+    key              = "bookworm",
     atlas            = "hr_jokers",
     pos              = { x = 1, y = 0 },
-    rarity           = 3,
+    rarity           = 1,
+    cost             = 4,
     blueprint_compat = true,
-    cost             = 6,
     discovered       = true,
 
-    config = { extra = { xmult = 3 } },
-
     loc_txt = {
-        name = "The Wizard",
+        name = "Bookworm",
         text = {
-            "Each scored {C:attention}Ace{}",
-            "gives {X:red,C:white}X#1#{} Mult"
+            "{C:chips}+1 Chip{} per {C:attention}character{}",
+            "in each other {C:attention}Joker's{} description",
+            "{C:inactive}(spaces not counted)",
+            "{C:inactive}(Currently {C:chips}+#1#{C:inactive} Chips)"
         }
     },
 
     loc_vars = function(self, info_queue, card)
-        return { vars = { card.ability.extra.xmult } }
+        local total = 0
+        if G.jokers then
+            for _, j in ipairs(G.jokers.cards) do
+                if j ~= card then
+                    total = total + count_joker_chars(j)
+                end
+            end
+        end
+        return { vars = { total } }
     end,
 
     calculate = function(self, card, context)
-        if context.individual and context.cardarea == G.play then
-            if context.other_card:get_id() == 14 then
-                return { x_mult = card.ability.extra.xmult }
+        if context.joker_main then
+            local total = 0
+            for _, j in ipairs(G.jokers.cards) do
+                if j ~= card then
+                    total = total + count_joker_chars(j)
+                end
+            end
+            if total > 0 then
+                return {
+                    chip_mod   = total,
+                    message = "+" .. total .. " Chips",
+                    colour  = G.C.CHIPS
+                }
             end
         end
     end
