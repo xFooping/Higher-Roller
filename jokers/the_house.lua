@@ -588,14 +588,50 @@ SMODS.Joker {
                 "x_mult", "x_chips",
                 "dollars", "p_dollars"
             }
+            local modified_field = nil
+            local modified_val = nil
+
             for _, field in ipairs(halve_fields) do
-                if type(result[field]) == "number" then
-                    result[field] = result[field] / 2
+                if result[field] then
+                    local val = result[field]
+                    -- Support both standard numbers and Big numbers (Talisman)
+                    local is_num = type(val) == "number"
+                    local is_big = type(val) == "table" and (val.is_big or val.type == "Big")
+                    
+                    if is_num or is_big then
+                        result[field] = val / 2
+                        -- Track the primary field for the message update
+                        if not modified_field or field:find("mult") or field:find("chip") then
+                            modified_field = field
+                            modified_val = result[field]
+                        end
+                    end
                 end
             end
+
+            -- Repetitions are handled separately
             if type(result.repetitions) == "number" then
                 result.repetitions = math.max(1, math.floor(result.repetitions / 2))
             end
+
+            -- SMART MESSAGE REPLACEMENT
+            -- We find any numbers in the original message and halve them
+            -- This preserves "Mult", "Chips", "Gold", etc.
+            if result.message then
+                result.message = result.message:gsub("(%d+%.?%d*)", function(n)
+                    local num = tonumber(n)
+                    if not num then return n end
+                    
+                    local halved = num / 2
+                    -- Format: No .0 for integers, 1 decimal for others
+                    if halved % 1 == 0 then
+                        return tostring(math.floor(halved))
+                    else
+                        return string.format("%.1f", halved)
+                    end
+                end)
+            end
+
             return result
         end
 
